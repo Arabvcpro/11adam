@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Hub</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 350px;
+        }
+        h1 {
+            font-size: 2rem;
+        }
+        form {
+            margin: 15px 0;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .hidden {
+            display: none;
+        }
+        .links-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .links-list li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Game Hub</h1>
+
+    <!-- Sign up/Login Section -->
+    <div id="authSection">
+        <h2>Sign Up</h2>
+        <form id="signupForm">
+            <input type="text" id="signupUsername" placeholder="Username" required>
+            <input type="password" id="signupPassword" placeholder="Password" required>
+            <button type="submit">Sign Up</button>
+        </form>
+
+        <h2>Login</h2>
+        <form id="loginForm">
+            <input type="text" id="loginUsername" placeholder="Username" required>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="hidden">
+        <h2>Welcome, <span id="welcomeUser"></span>!</h2>
+        <form id="addGameLinkForm">
+            <input type="url" id="gameLink" placeholder="Add game link" required>
+            <button type="submit">Add Link</button>
+        </form>
+        <h3>Your Game Links</h3>
+        <ul id="gameLinksList" class="links-list"></ul>
+        <button id="logoutBtn">Logout</button>
+    </div>
+</div>
+
+<script>
+// LocalStorage Keys
+const USERS_KEY = "users";
+const CURRENT_USER_KEY = "currentUser";
+const GAME_LINKS_KEY = "gameLinks";
+
+// Initial Load
+window.onload = function() {
+    if (getCurrentUser()) {
+        showDashboard();
+    } else {
+        showAuthSection();
+    }
+};
+
+// Utility Functions
+function getUsers() {
+    return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+}
+
+function saveUsers(users) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+function getCurrentUser() {
+    return JSON.parse(localStorage.getItem(CURRENT_USER_KEY));
+}
+
+function setCurrentUser(username) {
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(username));
+}
+
+function getGameLinks(username) {
+    return JSON.parse(localStorage.getItem(GAME_LINKS_KEY))?.[username] || [];
+}
+
+function saveGameLink(username, link) {
+    let allGameLinks = JSON.parse(localStorage.getItem(GAME_LINKS_KEY)) || {};
+    if (!allGameLinks[username]) {
+        allGameLinks[username] = [];
+    }
+    allGameLinks[username].push(link);
+    localStorage.setItem(GAME_LINKS_KEY, JSON.stringify(allGameLinks));
+}
+
+// Show Sections
+function showDashboard() {
+    document.getElementById("authSection").classList.add("hidden");
+    document.getElementById("dashboardSection").classList.remove("hidden");
+
+    const username = getCurrentUser();
+    document.getElementById("welcomeUser").textContent = username;
+
+    loadGameLinks(username);
+}
+
+function showAuthSection() {
+    document.getElementById("authSection").classList.remove("hidden");
+    document.getElementById("dashboardSection").classList.add("hidden");
+}
+
+// Load and Display Game Links
+function loadGameLinks(username) {
+    const linksList = document.getElementById("gameLinksList");
+    linksList.innerHTML = "";
+
+    const links = getGameLinks(username);
+    links.forEach(link => {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = link;
+        a.textContent = link;
+        a.target = "_blank";
+        li.appendChild(a);
+        linksList.appendChild(li);
+    });
+}
+
+// Event Listeners
+
+// Signup Form
+document.getElementById("signupForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    const username = document.getElementById("signupUsername").value;
+    const password = document.getElementById("signupPassword").value;
+
+    let users = getUsers();
+    if (users.some(user => user.username === username)) {
+        alert("Username already exists!");
+    } else {
+        users.push({ username, password });
+        saveUsers(users);
+        setCurrentUser(username);
+        showDashboard();
+    }
+});
+
+// Login Form
+document.getElementById("loginForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    const username = document.getElementById("loginUsername").value;
+    const password = document.getElementById("loginPassword").value;
+
+    const users = getUsers();
+    const user = users.find(user => user.username === username && user.password === password);
+
+    if (user) {
+        setCurrentUser(username);
+        showDashboard();
+    } else {
+        alert("Invalid login credentials!");
+    }
+});
+
+// Add Game Link Form
+document.getElementById("addGameLinkForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    const gameLink = document.getElementById("gameLink").value;
+    const username = getCurrentUser();
+
+    saveGameLink(username, gameLink);
+    loadGameLinks(username);
+    document.getElementById("gameLink").value = "";
+});
+
+// Logout
+document.getElementById("logoutBtn").addEventListener("click", function() {
+    localStorage.removeItem(CURRENT_USER_KEY);
+    showAuthSection();
+});
+</script>
+
+</body>
+</html>
